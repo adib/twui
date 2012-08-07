@@ -16,7 +16,9 @@
 
 #import "TUIImage.h"
 #import "TUIKit.h"
+#import "TUIStretchableImage.h"
 
+/*
 @interface TUIStretchableImage : TUIImage
 {
 	@public
@@ -29,7 +31,7 @@
 	} _flags;
 }
 @end
-
+*/
 
 @implementation TUIImage
 
@@ -228,11 +230,13 @@
 	return 0;
 }
 
-- (TUIImage *)stretchableImageWithLeftCapWidth:(NSInteger)leftCapWidth topCapHeight:(NSInteger)topCapHeight
+- (TUIStretchableImage *)stretchableImageWithLeftCapWidth:(NSInteger)leftCapWidth topCapHeight:(NSInteger)topCapHeight
 {
-	TUIStretchableImage *i = (TUIStretchableImage *)[TUIStretchableImage imageWithCGImage:self.CGImage];
-	i->leftCapWidth = leftCapWidth;
-	i->topCapHeight = topCapHeight;
+	TUIStretchableImage *i = (TUIStretchableImage *)[[TUIStretchableImage alloc] initWithCGImage:self.CGImage size:NSZeroSize];
+    TUIEdgeInsets edgeInsets = i.capInsets;
+    edgeInsets.left = leftCapWidth;
+    edgeInsets.top = topCapHeight;
+    i.capInsets = edgeInsets;
 	return i;
 }
 
@@ -256,103 +260,6 @@
 @end
 
 
-
-
-@implementation TUIStretchableImage
-
-- (void)dealloc
-{
-	for(int i = 0; i < 9; ++i)
-		;
-}
-
-- (NSInteger)leftCapWidth
-{
-	return leftCapWidth;
-}
-
-- (NSInteger)topCapHeight
-{
-	return topCapHeight;
-}
-
-/*
- 
- x0     x1      x2      x3
- +-------+-------+-------+ y3
- |       |       |       |
- |   6   |   7   |   8   |
- |       |       |       |
- +-------+-------+-------+ y2
- |       |       |       |
- |   3   |   4   |   5   |
- |       |       |       |
- +-------+-------+-------+ y1
- |       |       |       |
- |   0   |   1   |   2   |
- |       |       |       |
- +-------+-------+-------+ y0
- 
- */
-
-#define STRETCH_COORDS(X0, Y0, W, H, TOP, LEFT, BOTTOM, RIGHT) \
-	CGFloat x0 = X0; \
-	CGFloat x1 = X0 + LEFT; \
-	CGFloat x2 = X0 + W - RIGHT; \
-	CGFloat x3 = X0 + W; \
-	CGFloat y0 = Y0; \
-	CGFloat y1 = Y0 + BOTTOM; \
-	CGFloat y2 = Y0 + H - TOP; \
-	CGFloat y3 = Y0 + H; \
-	CGRect r[9]; \
-	r[0] = CGRectMake(x0, y0, x1-x0, y1-y0); \
-	r[1] = CGRectMake(x1, y0, x2-x1, y1-y0); \
-	r[2] = CGRectMake(x2, y0, x3-x2, y1-y0); \
-	r[3] = CGRectMake(x0, y1, x1-x0, y2-y1); \
-	r[4] = CGRectMake(x1, y1, x2-x1, y2-y1); \
-	r[5] = CGRectMake(x2, y1, x3-x2, y2-y1); \
-	r[6] = CGRectMake(x0, y2, x1-x0, y3-y2); \
-	r[7] = CGRectMake(x1, y2, x2-x1, y3-y2); \
-	r[8] = CGRectMake(x2, y2, x3-x2, y3-y2);
-
-- (void)drawInRect:(CGRect)rect blendMode:(CGBlendMode)blendMode alpha:(CGFloat)alpha
-{
-	CGSize s = self.size;
-	CGFloat t = topCapHeight;
-	CGFloat l = leftCapWidth;
-	
-	if(t*2 > s.height-1) t -= 1;
-	if(l*2 > s.width-1) l -= 1;
-	
-    CGImageRef imageRef = self.CGImage;
-	if(imageRef) {
-		if(!_flags.haveSlices) {
-			STRETCH_COORDS(0.0, 0.0, s.width, s.height, t, l, t, l)
-			#define X(I) slices[I] = [self upsideDownCrop:r[I]];
-			X(0) X(1) X(2)
-			X(3) X(4) X(5)
-			X(6) X(7) X(8)
-			#undef X
-			_flags.haveSlices = 1;
-		}
-		
-		CGContextRef ctx = TUIGraphicsGetCurrentContext();
-		CGContextSaveGState(ctx);
-		CGContextSetAlpha(ctx, alpha);
-		CGContextSetBlendMode(ctx, blendMode);
-		STRETCH_COORDS(rect.origin.x, rect.origin.y, rect.size.width, rect.size.height, t, l, t, l)
-		#define X(I) CGContextDrawImage(ctx, r[I], slices[I].CGImage);
-		X(0) X(1) X(2)
-		X(3) X(4) X(5)
-		X(6) X(7) X(8)
-		#undef X
-		CGContextRestoreGState(ctx);
-	}
-}
-
-#undef STRETCH_COORDS
-
-@end
 
 NSData *TUIImagePNGRepresentation(TUIImage *image)
 {

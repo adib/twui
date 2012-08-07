@@ -16,6 +16,7 @@
 
 #import "TUIKit.h"
 #import "TUIImage+Drawing.h"
+#import "TUIColor.h"
 
 @implementation TUIImage (Drawing)
 
